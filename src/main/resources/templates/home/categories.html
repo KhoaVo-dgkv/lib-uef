@@ -704,49 +704,45 @@
 </header>
 
 <main class="container py-5">
+    <form th:action="@{/categories}" method="get" id="filterAndSortForm">
     <div class="row">
-
         <aside class="col-lg-3">
             <div class="filter-sidebar">
-
-                <div class="filter-widget">
-                    <h4 class="filter-title">Tìm kiếm sách</h4>
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="Tên sách, tác giả...">
-                        <button class="btn btn-outline-secondary" type="button"><i class="fas fa-search"></i></button>
-                    </div>
+                <input type="hidden" name="sort" th:value="${sort}">
+                <input type="hidden" name="page" value="0"> <div class="filter-widget">
+                <h4 class="filter-title">Tìm kiếm sách</h4>
+                <div class="input-group">
+                    <input type="text" class="form-control" name="keyword" placeholder="Tên sách, tác giả..." th:value="${keyword}">
+                    <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
                 </div>
+            </div>
 
                 <div class="filter-widget">
                     <h4 class="filter-title">Danh mục</h4>
                     <ul class="filter-list">
-                        <li class="active"><a href="#">Tất cả</a></li>
-                        <li><a href="#">Văn học</a></li>
-                        <li><a href="#">Khoa học</a></li>
-                        <li><a href="#">Lịch sử</a></li>
-                        <li><a href="#">Tâm lý học</a></li>
-                        <li><a href="#">Kinh tế</a></li>
-                        <li><a href="#">Công nghệ</a></li>
-                        <li><a href="#">Thiếu nhi</a></li>
+                        <li th:classappend="${categoryId == null} ? 'active'">
+                            <a th:href="@{/categories(keyword=${keyword}, sort=${sort}, availability=${availability})}">Tất cả</a>
+                        </li>
+                        <li th:each="cat : ${categories}" th:classappend="${categoryId != null && categoryId == cat.id} ? 'active'">
+                            <a th:href="@{/categories(keyword=${keyword}, categoryId=${cat.id}, sort=${sort}, availability=${availability})}" th:text="${cat.name}"></a>
+                        </li>
                     </ul>
                 </div>
 
                 <div class="filter-widget">
                     <h4 class="filter-title">Tình trạng</h4>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="availability" id="avail_all" checked>
-                        <label class="form-check-label" for="avail_all">Tất cả</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="availability" id="avail_yes">
-                        <label class="form-check-label" for="avail_yes">Còn sách</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="availability" id="avail_no">
-                        <label class="form-check-label" for="avail_no">Đang mượn</label>
-                    </div>
+                    <ul class="filter-list">
+                        <li th:classappend="${availability == null or #strings.equalsIgnoreCase(availability, 'all')} ? 'active'">
+                            <a th:href="@{/categories(keyword=${keyword}, categoryId=${categoryId}, sort=${sort}, availability='all')}">Tất cả</a>
+                        </li>
+                        <li th:classappend="${#strings.equalsIgnoreCase(availability, 'available')} ? 'active'">
+                            <a th:href="@{/categories(keyword=${keyword}, categoryId=${categoryId}, sort=${sort}, availability='available')}">Còn sách</a>
+                        </li>
+                        <li th:classappend="${#strings.equalsIgnoreCase(availability, 'borrowed')} ? 'active'">
+                            <a th:href="@{/categories(keyword=${keyword}, categoryId=${categoryId}, sort=${sort}, availability='borrowed')}">Đang mượn</a>
+                        </li>
+                    </ul>
                 </div>
-
                 <div class="filter-widget">
                     <h4 class="filter-title">Xếp hạng</h4>
                     <ul class="filter-list">
@@ -755,121 +751,61 @@
                         <li><a href="#"><i class="fas fa-star text-warning"></i><i class="fas fa-star text-warning"></i><i class="fas fa-star text-warning"></i><i class="far fa-star text-warning"></i><i class="far fa-star text-warning"></i> &amp; trở lên</a></li>
                     </ul>
                 </div>
-
             </div>
         </aside>
 
         <section class="col-lg-9">
             <div class="shop-controls">
-                <p class="result-count mb-0">Hiển thị 1–8 trên 24 kết quả</p>
-                <select class="form-select">
-                    <option selected>Sắp xếp theo: Mới nhất</option>
-                    <option value="1">Sắp xếp theo: Phổ biến</option>
-                    <option value="2">Sắp xếp theo: Tên A-Z</option>
-                    <option value="3">Sắp xếp theo: Tên Z-A</option>
+                <p class="result-count mb-0"
+                   th:text="|Hiển thị ${bookPage.number * bookPage.size + 1}–${bookPage.number * bookPage.size + bookPage.numberOfElements} trên ${bookPage.totalElements} kết quả|">
+                </p>
+                <select class="form-select" name="sort" onchange="document.getElementById('filterAndSortForm').submit()">
+                    <option value="createdAt,desc" th:selected="${sort == 'createdAt,desc'}">Sắp xếp: Mới nhất</option>
+                    <option value="title,asc" th:selected="${sort == 'title,asc'}">Sắp xếp: Tên A-Z</option>
+                    <option value="title,desc" th:selected="${sort == 'title,desc'}">Sắp xếp: Tên Z-A</option>
                 </select>
             </div>
 
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3">
-
-                <div class="col mb-4">
+                <div th:if="${bookPage.empty}" class="col-12">
+                    <div class="alert alert-warning text-center" role="alert">
+                        Không tìm thấy sách nào phù hợp với tiêu chí của bạn.
+                    </div>
+                </div>
+                <div class="col mb-4" th:each="book : ${bookPage.content}">
                     <div class="book-card">
                         <div class="book-thumb">
-                            <a href="#"><img src="https://source.unsplash.com/500x650/?book,oldcover&sig=1" alt="Sách Trăm năm cô đơn"></a>
-                            <span class="book-category">Văn học</span>
-                            <span class="book-availability">Còn sách</span>
+                            <a th:href="@{'/books/details/' + ${book.id}}">
+                                <img th:src="${book.coverImage != null and !book.coverImage.isEmpty() ? book.coverImage : 'https://source.unsplash.com/500x650/?book,cover'}" th:alt="${book.title}">
+                            </a>
+                            <span class="book-category" th:text="${book.category?.name} ?: 'Chưa phân loại'"></span>
+                            <span class="book-availability" th:text="${book.availableCopies > 0 ? 'Còn sách' : 'Đang mượn'}" th:classappend="${book.availableCopies > 0 ? '' : 'borrowed'}"></span>
                         </div>
                         <div class="book-info">
-                            <h5 class="book-title"><a href="#" class="text-decoration-none text-dark">Trăm năm cô đơn</a></h5>
-                            <p class="book-author">Tác giả: Gabriel García Márquez</p>
+                            <h5 class="book-title"><a th:href="@{'/books/details/' + ${book.id}}" class="text-decoration-none text-dark" th:text="${book.title}"></a></h5>
+                            <p class="book-author" th:text="'Tác giả: ' + ${book.author}"></p>
                             <div class="book-meta">
                                 <div class="book-rating"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
-                                <div class="book-actions"><a href="#" class="btn btn-view">Chi tiết</a></div>
+                                <div class="book-actions"><a th:href="@{'/books/details/' + ${book.id}}" class="btn btn-view">Chi tiết</a></div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="col mb-4">
-                    <div class="book-card">
-                        <div class="book-thumb">
-                            <a href="#"><img src="https://source.unsplash.com/500x650/?book,sciencecover&sig=2" alt="Sách Vũ trụ"></a>
-                            <span class="book-category">Khoa học</span>
-                            <span class="book-availability borrowed">Đang mượn</span>
-                        </div>
-                        <div class="book-info">
-                            <h5 class="book-title"><a href="#" class="text-decoration-none text-dark">Vũ trụ trong vỏ hạt dẻ</a></h5>
-                            <p class="book-author">Tác giả: Stephen Hawking</p>
-                            <div class="book-meta">
-                                <div class="book-rating"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></div>
-                                <div class="book-actions"><a href="#" class="btn btn-view">Chi tiết</a></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col mb-4">
-                    <div class="book-card">
-                        <div class="book-thumb">
-                            <a href="#"><img src="https://source.unsplash.com/500x650/?book,historycover&sig=4" alt="Sách Lược sử"></a>
-                            <span class="book-category">Lịch sử</span>
-                            <span class="book-availability">Còn sách</span>
-                        </div>
-                        <div class="book-info">
-                            <h5 class="book-title"><a href="#" class="text-decoration-none text-dark">Sapiens: Lược sử loài người</a></h5>
-                            <p class="book-author">Tác giả: Yuval Noah Harari</p>
-                            <div class="book-meta">
-                                <div class="book-rating"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
-                                <div class="book-actions"><a href="#" class="btn btn-view">Chi tiết</a></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col mb-4">
-                    <div class="book-card">
-                        <div class="book-thumb">
-                            <a href="#"><img src="https://source.unsplash.com/500x650/?book,techcover&sig=6" alt="Sách Clean Code"></a>
-                            <span class="book-category">Công nghệ</span>
-                            <span class="book-availability">Còn sách</span>
-                        </div>
-                        <div class="book-info">
-                            <h5 class="book-title"><a href="#" class="text-decoration-none text-dark">Clean Code</a></h5>
-                            <p class="book-author">Tác giả: Robert C. Martin</p>
-                            <div class="book-meta">
-                                <div class="book-rating"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
-                                <div class="book-actions"><a href="#" class="btn btn-view">Chi tiết</a></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col mb-4">
-                    <div class="book-card">
-                        <div class="book-thumb"><a href="#"><img src="https://source.unsplash.com/500x650/?book,fantasycover&sig=7" alt="Sách Harry Potter"></a><span class="book-category">Thiếu nhi</span><span class="book-availability">Còn sách</span></div>
-                        <div class="book-info"><h5 class="book-title"><a href="#" class="text-decoration-none text-dark">Harry Potter và Hòn đá Phù thủy</a></h5><p class="book-author">Tác giả: J.K. Rowling</p><div class="book-meta"><div class="book-rating"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><div class="book-actions"><a href="#" class="btn btn-view">Chi tiết</a></div></div></div>
-                    </div>
-                </div>
-
-                <div class="col mb-4">
-                    <div class="book-card">
-                        <div class="book-thumb"><a href="#"><img src="https://source.unsplash.com/500x650/?book,adventurecover&sig=8" alt="Sách Nhà Giả Kim"></a><span class="book-category">Văn học</span><span class="book-availability borrowed">Đang mượn</span></div>
-                        <div class="book-info"><h5 class="book-title"><a href="#" class="text-decoration-none text-dark">Nhà Giả Kim</a></h5><p class="book-author">Tác giả: Paulo Coelho</p><div class="book-meta"><div class="book-rating"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div><div class="book-actions"><a href="#" class="btn btn-view">Chi tiết</a></div></div></div>
-                    </div>
-                </div>
-
             </div>
 
-            <nav aria-label="Page navigation">
+            <nav aria-label="Page navigation" th:if="${bookPage.totalPages > 1}">
                 <ul class="pagination">
-                    <li class="page-item disabled"><a class="page-link" href="#"><span>&laquo;</span></a></li>
-                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item"><a class="page-link" href="#"><span>&raquo;</span></a></li>
+                    <li class="page-item" th:classappend="${bookPage.first} ? 'disabled'">
+                        <a class="page-link" th:href="@{/categories(page=${bookPage.number - 1}, size=${bookPage.size}, keyword=${keyword}, categoryId=${categoryId}, availability=${availability}, sort=${sort})}"><span>&laquo;</span></a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0, bookPage.totalPages - 1)}" th:classappend="${i == bookPage.number} ? 'active'">
+                        <a class="page-link" th:href="@{/categories(page=${i}, size=${bookPage.size}, keyword=${keyword}, categoryId=${categoryId}, availability=${availability}, sort=${sort})}" th:text="${i + 1}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${bookPage.last} ? 'disabled'">
+                        <a class="page-link" th:href="@{/categories(page=${bookPage.number + 1}, size=${bookPage.size}, keyword=${keyword}, categoryId=${categoryId}, availability=${availability}, sort=${sort})}"><span>&raquo;</span></a>
+                    </li>
                 </ul>
             </nav>
-
         </section>
 
     </div>
